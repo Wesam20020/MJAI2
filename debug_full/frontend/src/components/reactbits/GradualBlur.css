@@ -1,0 +1,5 @@
+/* GradualBlur: single-element fade overlay */
+/* All positioning is handled via inline styles in GradualBlur.jsx */
+.gradual-blur-fade {
+  pointer-events: none;
+}

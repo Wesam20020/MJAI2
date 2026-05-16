@@ -1,0 +1,32 @@
+.glare-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+/* The beam is a real DOM child — last in order, so it paints on top naturally */
+.glare-hover-beam {
+  position: absolute;
+  top: -50%;
+  left: -80%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 40%,
+    rgba(255, 255, 255, 0.22) 60%,
+    transparent 100%
+  );
+  transform: skewX(-15deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+  mix-blend-mode: screen;
+  transition: left 0.85s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+}
+
+.glare-hover:hover .glare-hover-beam,
+.glare-hover:focus-within .glare-hover-beam {
+  left: 140%;
+  opacity: 1;
+}

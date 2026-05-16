@@ -1,0 +1,29 @@
+/* App shell — full viewport container */
+.app-shell {
+  min-height: 100vh;
+  background: var(--shell-bg);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+  transition: background 0.4s ease, color 0.35s ease;
+}
+
+/* Subtle dot-grid texture — adapts to theme via --dot-color */
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 42px 42px;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Main content area */
+.app-main {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: calc(100vh - 80px);
+}

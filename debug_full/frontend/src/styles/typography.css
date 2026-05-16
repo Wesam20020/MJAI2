@@ -1,0 +1,91 @@
+/* ═══════════════════════════════════════════════════════════
+   TYPOGRAPHY — Space Grotesk (display) + Outfit (body)
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ── Base body text ───────────────────────────────────── */
+body,
+input,
+textarea,
+button,
+select {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ── Display / heading text ───────────────────────────── */
+h1, h2, h3, h4, h5, h6,
+.brand-title,
+.hero-headline,
+.section-headline,
+.section-title,
+.stat-block-value,
+.display {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+h1 { font-size: clamp(2.4rem, 5vw, 4rem);   line-height: 1.05; }
+h2 { font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.15; }
+h3 { font-size: clamp(1.2rem, 2vw, 1.6rem); line-height: 1.25; }
+
+p {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+/* ── Utility text sizes ───────────────────────────────── */
+.text-xs   { font-size: 0.75rem; }
+.text-sm   { font-size: 0.875rem; }
+.text-base { font-size: 1rem; }
+.text-lg   { font-size: 1.125rem; }
+.text-xl   { font-size: 1.25rem; }
+.text-2xl  { font-size: 1.5rem; }
+.text-3xl  { font-size: 1.875rem; }
+
+/* ── Font weight utilities ────────────────────────────── */
+.font-light    { font-weight: 300; }
+.font-regular  { font-weight: 400; }
+.font-medium   { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold     { font-weight: 700; }
+.font-black    { font-weight: 800; }
+
+/* ── Text color utilities ─────────────────────────────── */
+.text-main    { color: var(--text);    }
+.text-muted   { color: var(--muted);   }
+.text-cyan    { color: var(--cyan);    }
+.text-magenta { color: var(--magenta); }
+.text-blue    { color: var(--blue);    }
+
+/* ── Gradient text ────────────────────────────────────── */
+.gradient-text {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #00d9ff 0%, #0066ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── RTL support ──────────────────────────────────────── */
+[dir="rtl"] {
+  font-family: 'Outfit', 'Tajawal', -apple-system, sans-serif;
+  letter-spacing: 0;
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] .brand-title {
+  font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+  letter-spacing: 0;
+}

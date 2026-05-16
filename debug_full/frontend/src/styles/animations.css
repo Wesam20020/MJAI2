@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════════════════════
+   ANIMATIONS — cinematic keyframes + utility classes
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Particle float ───────────────────────────────────── */
+@keyframes particleFloat {
+  0%   { transform: translateY(0)    translateX(0);    opacity: 0.35; }
+  25%  { transform: translateY(-22px) translateX(8px);  opacity: 0.65; }
+  50%  { transform: translateY(-10px) translateX(-6px); opacity: 0.45; }
+  75%  { transform: translateY(-32px) translateX(4px);  opacity: 0.28; }
+  100% { transform: translateY(0)    translateX(0);    opacity: 0.35; }
+}
+
+/* ── Glow pulse ───────────────────────────────────────── */
+@keyframes glowPulse {
+  0%,100% { box-shadow: 0 0 20px var(--shadow-glow-color, rgba(0,217,255,0.30)); }
+  50%     { box-shadow: 0 0 40px var(--primary), 0 0 80px rgba(0,217,255,0.20); }
+}
+
+/* ── Text glow ────────────────────────────────────────── */
+@keyframes textGlow {
+  0%,100% { text-shadow: 0 0 20px var(--primary-soft, rgba(0,217,255,0.50)); }
+  50%     { text-shadow: 0 0 40px var(--primary), 0 0 80px rgba(0,217,255,0.30); }
+}
+
+/* ── Gradient background shift ────────────────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* ── Letter wave reveal ───────────────────────────────── */
+@keyframes letterReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) rotateX(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0)    rotateX(0deg);
+  }
+}
+
+/* ── Slide up fade ────────────────────────────────────── */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Fade in ──────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Fade up ──────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Border glow rotate ───────────────────────────────── */
+@keyframes borderGlow {
+  0%,100% { border-color: var(--line); }
+  50%     { border-color: var(--primary); box-shadow: 0 0 30px var(--primary-soft, rgba(0,217,255,0.20)); }
+}
+
+/* ── Shimmer sweep ────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+/* ── Spin ─────────────────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Count pop ────────────────────────────────────────── */
+@keyframes countPop {
+  0%   { transform: scale(0.82); opacity: 0.2; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1);    opacity: 1;   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Utility classes
+   ══════════════════════════════════════════════════════════ */
+
+/* Entrance */
+.anim-fade-in  { animation: fadeIn     0.45s ease           both; }
+.anim-fade-up  { animation: fadeUp     0.55s var(--ease-out, cubic-bezier(0.22,1,0.36,1)) both; }
+.anim-slide-up { animation: slideUpFade 0.6s var(--ease-out, cubic-bezier(0.22,1,0.36,1)) both; }
+
+/* Delays */
+.delay-50   { animation-delay: 0.05s; }
+.delay-100  { animation-delay: 0.10s; }
+.delay-150  { animation-delay: 0.15s; }
+.delay-200  { animation-delay: 0.20s; }
+.delay-300  { animation-delay: 0.30s; }
+.delay-400  { animation-delay: 0.40s; }
+.delay-500  { animation-delay: 0.50s; }
+.delay-600  { animation-delay: 0.60s; }
+
+/* Looping */
+.animate-glow-pulse  { animation: glowPulse    2s   ease-in-out infinite; }
+.animate-float       { animation: particleFloat 20s  ease-in-out infinite; }
+.animate-gradient    { background-size: 200% 200%; animation: gradientShift 4s ease infinite; }
+.animate-border-glow { animation: borderGlow   3s   ease-in-out infinite; }
+.animate-text-glow   { animation: textGlow     2.5s ease-in-out infinite; }
+.spin                { animation: spin         0.8s linear      infinite; }
+.stat-pop            { animation: countPop     0.5s var(--ease-bounce, cubic-bezier(0.34,1.56,0.64,1)) both; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--panel-soft) 25%,
+    var(--line) 50%,
+    var(--panel-soft) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 8px;
+}
+
+/* ── Perspective container for 3D letter reveals ──────── */
+.perspective-wrap {
+  perspective: 600px;
+  perspective-origin: center;
+}
+
+.letter-span {
+  display: inline-block;
+  animation: letterReveal 0.6s ease both;
+  transform-origin: bottom center;
+}
