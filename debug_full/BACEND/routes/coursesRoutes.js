@@ -35,7 +35,7 @@ function normalizeMajorName(value) {
   return String(value || '').trim();
 }
 
-const COURSE_CONTENT_TIMEOUT_MS = Number(process.env.COURSE_CONTENT_TIMEOUT_MS || 12000);
+const COURSE_CONTENT_TIMEOUT_MS = Number(process.env.COURSE_CONTENT_TIMEOUT_MS || 30000);
 
 function buildCourseContentFallback(major) {
   const safeMajor = normalizeMajorName(major) || 'Computer Science';

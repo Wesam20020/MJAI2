@@ -4,7 +4,7 @@ const db = require('../config/db');
 const { generateChatReply } = require('../services/openaiService');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-const CHAT_TIMEOUT_MS = Number(process.env.CHAT_TIMEOUT_MS || 12000);
+const CHAT_TIMEOUT_MS = Number(process.env.CHAT_TIMEOUT_MS || 30000);
 
 function buildChatFallback(recommendedMajor, language = 'en') {
   const major = recommendedMajor || 'your recommended major';

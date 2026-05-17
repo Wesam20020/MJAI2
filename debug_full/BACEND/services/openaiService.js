@@ -5,6 +5,21 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const AI_READY = Boolean(OPENAI_API_KEY);
 const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 180000);
+const RECOMMENDATION_TIMEOUT_MS = Number(process.env.RECOMMENDATION_TIMEOUT_MS || 30000);
+const CHAT_TIMEOUT_MS = Number(process.env.CHAT_TIMEOUT_MS || 30000);
+const COURSE_CONTENT_TIMEOUT_MS = Number(process.env.COURSE_CONTENT_TIMEOUT_MS || 30000);
+const RECOMMENDATION_MAX_TOKENS = Number(process.env.RECOMMENDATION_MAX_TOKENS || 750);
+const CHAT_MAX_TOKENS = Number(process.env.CHAT_MAX_TOKENS || 420);
+const COURSE_CONTENT_MAX_TOKENS = Number(process.env.COURSE_CONTENT_MAX_TOKENS || 850);
+
+function positiveNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function safeTimeoutMs(value, fallback) {
+  return Math.max(1000, positiveNumber(value, fallback));
+}
 
 console.log(`[openaiService] loaded | model: ${OPENAI_MODEL} | ai: ${AI_READY ? 'ready' : 'NO KEY'}`);
 
@@ -17,8 +32,11 @@ function cleanJsonText(text = '') {
     .trim();
 }
 
-async function callOpenAI(prompt, { temperature = 0.4, json = false } = {}) {
+async function callOpenAI(prompt, { temperature = 0.4, json = false, maxTokens = null, timeoutMs = null } = {}) {
   if (!AI_READY) return null;
+
+  const effectiveTimeoutMs = safeTimeoutMs(timeoutMs || OPENAI_TIMEOUT_MS, OPENAI_TIMEOUT_MS);
+  const effectiveMaxTokens = maxTokens ? positiveNumber(maxTokens, null) : null;
 
   const body = {
     model: OPENAI_MODEL,
@@ -26,20 +44,24 @@ async function callOpenAI(prompt, { temperature = 0.4, json = false } = {}) {
       {
         role: 'system',
         content: json
-          ? 'You are a precise academic advisor. Return valid JSON only. Do not include markdown.'
-          : 'You are a warm, practical academic advisor for university students.'
+          ? 'You are a precise academic advisor. Return compact valid JSON only. Do not include markdown or extra text.'
+          : 'You are a warm, concise, practical academic advisor for university students.'
       },
       { role: 'user', content: prompt }
     ],
     temperature
   };
 
+  if (effectiveMaxTokens) {
+    body.max_tokens = effectiveMaxTokens;
+  }
+
   if (json) {
     body.response_format = { type: 'json_object' };
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 
   let response;
   try {
@@ -54,7 +76,7 @@ async function callOpenAI(prompt, { temperature = 0.4, json = false } = {}) {
     });
   } catch (error) {
     if (error?.name === 'AbortError') {
-      throw new Error(`OpenAI request timed out after ${OPENAI_TIMEOUT_MS}ms`);
+      throw new Error(`OpenAI request timed out after ${effectiveTimeoutMs}ms`);
     }
     throw error;
   } finally {
@@ -667,12 +689,17 @@ Important corrections:
 }
 
 function buildAnswerSummary(answerDetails) {
-  return answerDetails.map((item, index) => ({
-    questionNumber: index + 1,
-    category: item.category,
-    questionText: item.questionText,
-    selectedOptions: item.selectedOptions.map((option) => option.optionText)
+  return (Array.isArray(answerDetails) ? answerDetails : []).slice(0, 20).map((item, index) => ({
+    n: index + 1,
+    category: String(item.category || '').slice(0, 40),
+    question: String(item.questionText || '').slice(0, 120),
+    selected: (item.selectedOptions || []).slice(0, 2).map((option) => String(option.optionText || '').slice(0, 90))
   }));
+}
+
+function compactJson(value, maxLength = 3000) {
+  const text = JSON.stringify(value || []);
+  return text.length > maxLength ? text.slice(0, maxLength) + '...TRUNCATED' : text;
 }
 
 function sanitizeRecommendationPayload(payload, fallbackMajor, fallbackExplanation, topMajors) {
@@ -722,33 +749,30 @@ async function generateRecommendationDetails(recommendedMajor, topMajors, answer
   }
 
   const prompt = `
-You are an academic advisor helping a student choose a university major.
-Use the recommendation context below and return valid JSON only.
-
-Top major candidates with scores: ${JSON.stringify(topMajors)}
-Selected answer summary: ${JSON.stringify(buildAnswerSummary(answerDetails))}
+You are an academic advisor. Return compact valid JSON only.
 Primary recommended major: ${recommendedMajor}
+Top majors: ${compactJson((topMajors || []).slice(0, 3), 1200)}
+Answer summary: ${compactJson(buildAnswerSummary(answerDetails), 2600)}
 
-Return JSON in this exact shape:
+Return exactly this JSON shape:
 {
-  "recommendedMajor": "",
-  "explanation": "",
-  "majorDescription": "",
-  "studyPlan": ["", "", "", ""],
-  "subjectDescriptions": ["", "", ""],
-  "careerPaths": ["", "", ""]
+  "recommendedMajor": "${recommendedMajor}",
+  "explanation": "2 concise sentences explaining the fit",
+  "majorDescription": "2 concise sentences about the major",
+  "studyPlan": ["Year 1: ...", "Year 2: ...", "Year 3: ...", "Year 4: ..."],
+  "subjectDescriptions": ["subject area 1", "subject area 2", "subject area 3"],
+  "careerPaths": ["Job title 1", "Job title 2", "Job title 3"]
 }
-
-Rules:
-- explanation should be 2 to 3 sentences in clear English.
-- studyPlan should contain 4 concise items, one for each academic year.
-- subjectDescriptions should contain 3 concise items.
-- careerPaths should contain 3 concise job titles.
-- Keep everything practical and student-friendly.
+Rules: concise only, no paragraphs longer than 25 words, no markdown.
 `;
 
   try {
-    const text = await callOpenAI(prompt, { temperature: 0.4, json: true });
+    const text = await callOpenAI(prompt, {
+      temperature: 0.25,
+      json: true,
+      maxTokens: RECOMMENDATION_MAX_TOKENS,
+      timeoutMs: RECOMMENDATION_TIMEOUT_MS
+    });
     const cleaned = cleanJsonText(text);
 
     if (!cleaned) {
@@ -920,18 +944,18 @@ async function generateChatReply(recommendedMajor, explanation, userMessage, lan
   // Build conversation history block (last 6 exchanges max)
   let historyBlock = '';
   if (Array.isArray(history) && history.length > 0) {
-    const recent = history.slice(-6);
+    const recent = history.slice(-3);
     historyBlock = '\nCONVERSATION HISTORY (most recent last):\n' +
-      recent.map(m => `${m.role === 'user' ? 'Student' : 'You'}: ${m.content}`).join('\n') +
+      recent.map(m => `${m.role === 'user' ? 'Student' : 'You'}: ${String(m.content || '').slice(0, 220)}`).join('\n') +
       '\n';
   }
 
   const prompt = `You are MAJORMATCH AI — a warm, intelligent, human-sounding academic advisor for university students.
 
 STUDENT'S RECOMMENDED MAJOR: ${recommendedMajor}
-WHY IT FITS THEM: ${explanation}
+WHY IT FITS THEM: ${String(explanation || '').slice(0, 500)}
 ${historyBlock}
-STUDENT'S NEW MESSAGE: "${userMessage}"
+STUDENT'S NEW MESSAGE: "${String(userMessage || '').slice(0, 500)}"
 
 DETECTED INTENT: ${intent}
 WHAT TO DO: ${intentGuide[intent] || intentGuide.general}
@@ -939,7 +963,7 @@ WHAT TO DO: ${intentGuide[intent] || intentGuide.general}
 ABSOLUTE RULES — follow every single one:
 1. Respond ONLY in ${langName}. Every single word must be in ${langName}. Zero exceptions.
 2. Respond to WHAT THE STUDENT ACTUALLY ASKED. Do not ignore the question.
-3. Keep it 2-4 sentences unless listing items (then 3-5 items max).
+3. Keep it 2-4 short sentences unless listing items (then 3 items max).
 4. Sound like a warm mentor, not a textbook. Use natural conversational tone.
 5. NEVER start with "Of course", "Certainly", "Sure", "Absolutely", "Great question", "As your advisor", "Since your recommended major is", "Your recommended major is", or "As a [major] student". Begin differently every time.
 6. NEVER repeat a response you already gave in the conversation history.
@@ -950,7 +974,7 @@ ABSOLUTE RULES — follow every single one:
 Your reply:`;
 
   try {
-    const rawText = await callOpenAI(prompt, { temperature: 0.85 });
+    const rawText = await callOpenAI(prompt, { temperature: 0.55, maxTokens: CHAT_MAX_TOKENS, timeoutMs: CHAT_TIMEOUT_MS });
     if (rawText) {
       return rawText.replace(/\n{3,}/g, '\n\n').trim();
     }
@@ -1024,35 +1048,35 @@ async function generateCourseContentForMajor(major, topMajors = []) {
   }
 
   const prompt = `
-Create a practical learning path for a student whose selected university major is: ${safeMajor}.
-The student's top 3 recommendation context is: ${JSON.stringify(topMajors)}.
+Create compact course-preparation JSON for this selected university major: ${safeMajor}.
+Top 3 context: ${compactJson((topMajors || []).slice(0, 3), 1000)}
 
 Return valid JSON only in this exact shape:
 {
-  "title": "",
-  "overview": "",
+  "title": "${safeMajor} Learning Path",
+  "overview": "one short paragraph",
   "starterCourses": [
     { "title": "", "description": "", "keywords": "" }
   ],
   "roadmap": ["", "", "", ""],
   "youtubeSearchQueries": ["", "", ""],
   "freeResources": [
-    { "name": "", "url": "" }
+    { "name": "Coursera search", "url": "https://www.coursera.org/search" },
+    { "name": "edX search", "url": "https://www.edx.org/search" },
+    { "name": "Khan Academy", "url": "https://www.khanacademy.org/" }
   ],
   "projectIdeas": ["", "", ""]
 }
-
-Rules:
-- starterCourses: 4 to 6 course suggestions.
-- roadmap: 4 to 6 short steps.
-- youtubeSearchQueries: useful search phrases, not video URLs.
-- freeResources: include reputable general learning/search links only.
-- projectIdeas: beginner friendly and portfolio oriented.
-- Keep text clear and student-friendly.
+Rules: 4 starterCourses max, 4 roadmap steps max, 3 projectIdeas max, short descriptions only, no markdown.
 `;
 
   try {
-    const text = await callOpenAI(prompt, { temperature: 0.45, json: true });
+    const text = await callOpenAI(prompt, {
+      temperature: 0.3,
+      json: true,
+      maxTokens: COURSE_CONTENT_MAX_TOKENS,
+      timeoutMs: COURSE_CONTENT_TIMEOUT_MS
+    });
     const parsed = JSON.parse(cleanJsonText(text));
     return sanitizeCoursePayload(parsed, safeMajor);
   } catch (error) {

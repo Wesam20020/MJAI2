@@ -64,7 +64,7 @@ function parseJsonSafely(value, fallback = []) {
 }
 
 
-const RECOMMENDATION_TIMEOUT_MS = Number(process.env.RECOMMENDATION_TIMEOUT_MS || 15000);
+const RECOMMENDATION_TIMEOUT_MS = Number(process.env.RECOMMENDATION_TIMEOUT_MS || 30000);
 
 function buildFastRecommendationFallback(recommendedMajor, topMajors = []) {
   const safeMajor = recommendedMajor || topMajors?.[0]?.major || 'Computer Science';
