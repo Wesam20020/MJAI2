@@ -18,20 +18,79 @@ const { errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map(o => o.trim())
-  .concat(['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177']);
+/*
+  CORS FIX:
+  - يسمح للفرونت المحلي أثناء التطوير
+  - يسمح لدومين InfinityFree الحقيقي
+  - يسمح بإضافة دومينات أخرى من Render Environment Variable باسم FRONTEND_URL
+*/
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS blocked: ${origin}`));
-  }
-}));
+function normalizeOrigin(origin) {
+  if (!origin) return '';
+  return origin.trim().replace(/\/$/, '');
+}
+
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+
+  // InfinityFree frontend domain
+  'https://majormatchai.page.gd',
+  'http://majormatchai.page.gd',
+  'https://www.majormatchai.page.gd',
+  'http://www.majormatchai.page.gd'
+];
+
+const envAllowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...defaultAllowedOrigins.map(normalizeOrigin),
+    ...envAllowedOrigins
+  ])
+);
+
+console.log('Allowed CORS origins:', allowedOrigins);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    const cleanOrigin = normalizeOrigin(origin);
+
+    console.log('Request Origin:', cleanOrigin || 'No origin');
+
+    // Allow requests from Postman, Render health checks, curl, etc.
+    if (!cleanOrigin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked: ${cleanOrigin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
+};
+
+// مهم جدًا: CORS لازم يكون قبل كل routes
+app.use(cors(corsOptions));
+
+// مهم جدًا للـ preflight requests
+app.options(/.*/, cors(corsOptions));
+
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
+// API routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
@@ -61,7 +120,8 @@ app.get('/', (req, res) => {
       courseMajors: 'GET /api/courses/majors',
       courseContent: 'GET /api/courses?major=Computer%20Science',
       courseContentByParam: 'GET /api/courses/selected/Computer%20Science',
-      chat: 'POST /api/chat'
+      chat: 'POST /api/chat',
+      majors: 'GET /api/majors'
     }
   });
 });
@@ -72,7 +132,7 @@ app.use(errorHandler);
 initDb()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => {
